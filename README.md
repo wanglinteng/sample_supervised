@@ -1,9 +1,12 @@
 # 例样监督训练
 
 ## 网络结构
-    多层网络 input[784]->hidden1[128]->hidden2[32]->output[10]
-
-    例样监督 input[784]->hidden1[?]->hidden2[?]->output[784]
+```
+多层网络 input[784]->hidden1[128]->hidden2[32]->output[10]
+```
+```
+例样监督 input[784]->hidden1[?]->hidden2[?]->output[784]
+```
 
 ## 实验参数
     样例数 （60000）、平均信息熵、学习率（0.001）、 wij = wij - lr * ( same_grad - diff_grad )、 选取样例数据不通过例样监督网络
