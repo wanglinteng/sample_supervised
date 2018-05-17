@@ -62,16 +62,18 @@ class SampleNet(nn.Module):
     def __init__(self,input_size,hidden1_size,hidden2_size,output_size):
         super(SampleNet, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden1_size)
-        self.fc2 = nn.Linear(hidden1_size, hidden2_size)
-        self.fc3 = nn.Linear(hidden2_size, output_size)
+        # self.fc2 = nn.Linear(hidden1_size, hidden2_size)
+        # self.fc3 = nn.Linear(hidden2_size, output_size)
+        self.fc3 = nn.Linear(hidden1_size, output_size)
         self.relu = nn.ReLU()
 
     def forward(self, x):
         out = self.fc1(x)
         out = self.relu(out)
-        out = self.fc2(out)
-        out = self.relu(out)
+        # out = self.fc2(out)
+        # out = self.relu(out)
         out = self.fc3(out)
+        out = self.relu(out)
         return out
 
 # Parzen窗损失函数
@@ -82,12 +84,11 @@ class ParzenEntropyLoss(nn.Module):
     def forward(self, train_output, sample_outputs):
         # Parzen窗，窗口大小为1
         out = torch.pow(train_output - sample_outputs, 2)
-        out = torch.exp((-0.5)*out)
         out = torch.mean(out,dim=1)
+        out = torch.exp((-0.5)*out)
+        out = torch.mean(out,dim=0)
         # 信息熵
         out = (-1)*out*torch.log(out)
-        out = torch.mean(out)
-        # out = torch.sum(out)
         return out
 
 # 提取样例数据
@@ -106,7 +107,7 @@ def extract_sample_data():
 
 # 多层训练
 def train_run(pre_smple_net = False):
-    neural_net = NeuralNet(1024,128,32,10)
+    neural_net = NeuralNet(2048,128,32,10)
     criterion = nn.CrossEntropyLoss()
 
     # 用于加载样例监督模型预训练
@@ -157,7 +158,7 @@ def train_run(pre_smple_net = False):
 
 # 样例监督训练
 def sample_run():
-    sample_net = SampleNet(784,1024,392,1024)
+    sample_net = SampleNet(784,1024,0,2048)
     criterion = ParzenEntropyLoss()
     optimizer = PEO(sample_net.parameters(), lr=learning_rate)
     extract_sample_data() # 抽取样例数据
@@ -173,8 +174,16 @@ def sample_run():
 
         train_output = sample_net(image) # 单个训练数据通过样例监督网络输出值
 
+        # 样例数据不求梯度
+        for param in sample_net.parameters():
+            param.requires_grad = False
+
         same_loss = criterion(train_output,sample_net(same_sample_outputs))
         diff_loss = criterion(train_output,sample_net(diff_sample_outputs))
+
+        # 恢复梯度
+        for param in sample_net.parameters():
+            param.requires_grad = True
 
         optimizer.zero_grad()
         same_loss.backward(retain_graph=True) # 允许二次计算梯度
