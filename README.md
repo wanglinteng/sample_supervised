@@ -2,10 +2,10 @@
 
 ## 网络结构
 ```
-多层网络 input[784]->hidden1[128]->hidden2[32]->output[10]
+多层网络 input[?]->hidden1[?]->hidden2[?]->output[10]
 ```
 ```
-例样监督 input[784]->hidden1[?]->hidden2[?]->output[784]
+例样监督 input[784]->hidden1[?]->hidden2[?]->output[?]
 ```
 
 ## 实验参数
