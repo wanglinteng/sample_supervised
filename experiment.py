@@ -59,11 +59,11 @@ class NeuralNet(nn.Module):
 
 # 样例监督网络 x->h1->h2->x
 class SampleNet(nn.Module):
-    def __init__(self,input_size,hidden1_size,hidden2_size):
+    def __init__(self,input_size,hidden1_size,hidden2_size,output_size):
         super(SampleNet, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden1_size)
         self.fc2 = nn.Linear(hidden1_size, hidden2_size)
-        self.fc3 = nn.Linear(hidden2_size, input_size)
+        self.fc3 = nn.Linear(hidden2_size, output_size)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -106,7 +106,7 @@ def extract_sample_data():
 
 # 多层训练
 def train_run(pre_smple_net = False):
-    neural_net = NeuralNet(784,128,32,10)
+    neural_net = NeuralNet(1024,128,32,10)
     criterion = nn.CrossEntropyLoss()
 
     # 用于加载样例监督模型预训练
@@ -157,7 +157,7 @@ def train_run(pre_smple_net = False):
 
 # 样例监督训练
 def sample_run():
-    sample_net = SampleNet(784,1024,784)
+    sample_net = SampleNet(784,1024,392,1024)
     criterion = ParzenEntropyLoss()
     optimizer = PEO(sample_net.parameters(), lr=learning_rate)
     extract_sample_data() # 抽取样例数据
@@ -173,8 +173,8 @@ def sample_run():
 
         train_output = sample_net(image) # 单个训练数据通过样例监督网络输出值
 
-        same_loss = criterion(train_output,same_sample_outputs)
-        diff_loss = criterion(train_output,diff_sample_outputs)
+        same_loss = criterion(train_output,sample_net(same_sample_outputs))
+        diff_loss = criterion(train_output,sample_net(diff_sample_outputs))
 
         optimizer.zero_grad()
         same_loss.backward(retain_graph=True) # 允许二次计算梯度
@@ -189,12 +189,12 @@ def sample_run():
         if max_sample_num != -1 and i == max_sample_num:
             break
 
-    # 保存样例监督模型
+    # 保存样例监督
     torch.save(sample_net, 'sample_net.pkl')
     print('sample_net.pkl write success.')
 
 
 if __name__ == '__main__':
-    train_run() # 多层全连接网络
+    # train_run() # 多层全连接网络
     sample_run() # 样例监督预训练
     train_run(pre_smple_net=True) # 采用样例监督预训练的多层全链接网络
