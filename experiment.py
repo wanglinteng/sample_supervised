@@ -6,6 +6,7 @@ from torch.autograd import Variable
 
 import numpy as np
 from peo import PEO
+import visdom
 
 # 超参数列表
 num_epochs = 1 # 多层网络训练轮数
@@ -39,6 +40,9 @@ sample_loader = torch.utils.data.DataLoader(dataset=train_dataset,
 
 # 样例数据
 Sample_data = torch.FloatTensor(10, each_class_num, 1, 784)
+
+# 可视化采用visdom
+viz = visdom.Visdom()
 
 # 多层网络 x->h1->h2->c
 class NeuralNet(nn.Module):
@@ -103,6 +107,7 @@ def extract_sample_data():
     for i in range(10):
         if sample_pos[i] < each_class_num:
             print('ERROR: %d is not full' % i)
+    viz.images(Sample_data.view(-1,1,28,28)) # 可视化选取样本
 
 
 # 多层训练
@@ -163,6 +168,7 @@ def sample_run():
     optimizer = PEO(sample_net.parameters(), lr=learning_rate)
     extract_sample_data() # 抽取样例数据
 
+    line = viz.line(Y=np.array([[0,0],[0,0]]))
     # 每次取一个训练数据
     for i, (image, label) in enumerate(sample_loader):
         image = Variable(image.view(-1,784))
@@ -193,8 +199,14 @@ def sample_run():
         diff_loss.backward()
         optimizer.step()
 
-        if (i + 1) % 1000 == 0:
+        if (i + 1) % 100 == 0:
             print('Sample Supervised Train Num: [%d], Same Loss: %.4f, Diff Loss: %.4f' % (i + 1,same_loss.data[0],diff_loss.data[0]))
+            viz.line(X=np.column_stack((np.float32(i+1),np.float32(i+1))),
+                     Y=np.column_stack((same_loss.data[0],diff_loss.data[0])),
+                     win=line,
+                     opts=dict(legend=["same loss", "diff loss"],showlegend=True),
+                     update = 'append')
+
         if max_sample_num != -1 and i == max_sample_num:
             break
 
